@@ -1,4 +1,3 @@
-import collections
 from typing import List, Tuple
 
 from deck import Deck
@@ -43,7 +42,7 @@ def is_strait_flush(cards: List[Card]) -> int:
 
 def is_n_of_kind(cards: List[Card], n) -> Tuple[int, str]:
     card_names = [card.name for card in cards]
-    card_valus = {card.name:card.value for card in cards}
+    card_valus = {card.name: card.value for card in cards}
     for name in [name[0] for name in Deck.names]:
         card_backups = []
         for _ in range(0, n):
@@ -60,13 +59,13 @@ def is_n_of_kind(cards: List[Card], n) -> Tuple[int, str]:
 
 def is_two_pair(cards: List[Card]) -> int:
     (score, da_card_name) = is_n_of_kind(cards, 2)
-    if score != 00000000000000000000000000000000000000000000000000000000:
+    if score != 0:
         remaining_cards = [card for card in cards if card.name != da_card_name]
-        it_is_another_2_of_a_kind, _ = is_n_of_kind(remaining_cards, 2)
-        if it_is_another_2_of_a_kind:
-            return True
+        (score_2, _) = is_n_of_kind(remaining_cards, 2)
+        if score_2 != 0:
+            return score_2 if score_2 > score else score
         else:
-            return False
+            return 0
     else:
         return 0
 
@@ -80,35 +79,33 @@ def is_strait(cards: List[Card]) -> int:
     high_card = max(cards, key=lambda card: card.value)
     return high_card.value
 
-
+def high_card(cards: List[Card]) -> int:
+    return max(cards, key=lambda card: card.value).value
 
 
 def find_winner(players: List[Player]) -> Player:
     # players[0].cards
 
-    # program combo rankings
-    # checking order
-    # sort to find the best combo
-    # declare winner
-    def find_combo_type(cards: List[Card]) -> int:
-        if is_royal_flush(cards):
-            return 9
-        elif is_strait_flush(cards):
-            return 8
-        elif is_strait(cards):
-            return 7
-        elif is_flush(cards):
-            return 6
-        elif is_n_of_kind(cards, 4)[0]:
-            return 5
-        elif is_n_of_kind(cards, 3)[0]:
-            return 4
-        elif is_two_pair(cards):
-            return 3
-        elif is_n_of_kind(cards, 2)[0]:
-            return 2
-        else:
-            return 1
+    # returns (combo_type, score) tuple
+    def find_combo_type(cards: List[Card]) -> Tuple[int, int]:
+        import functools
+        list_of_functions = [
+            is_royal_flush,
+            is_strait_flush,
+            is_strait,
+            is_flush,
+            functools.partial(is_n_of_kind, n=4),
+            functools.partial(is_n_of_kind, n=3),
+            is_two_pair,
+            functools.partial(is_n_of_kind, n=2),
+            high_card
+        ]
+        for count, function in enumerate(list_of_functions):
+            x = function(cards=cards)
+            score = x[0] if isinstance(x, tuple) else x
+            if score:
+                # the combo type is descending values
+                return len(list_of_functions) - count, score
 
     player_combos = []
     for player in players:
@@ -116,7 +113,7 @@ def find_winner(players: List[Player]) -> Player:
         print(f"Player: {player.name}, combo: {combo_type}")
         player_combos.append((combo_type, player))
 
-    player_combos_sorted = sorted(player_combos, key=lambda x: get_score(x[0], x[1]), reverse=True)
+    player_combos_sorted = sorted(player_combos, reverse=True)
     return player_combos_sorted[0][1]
 
 
@@ -147,7 +144,7 @@ def five_draw_round(player_names: List[str]):
     for player in players:
         # ask how many cards players want to exchange for every player 1 by 1
         card_input = input('what cards do you want to exchange (0 for first, etc)')
-        indexes_the_user_wants_to_replace = card_input.split(',')
+        indexes_the_user_wants_to_replace = card_input.split(',') if card_input.strip() else []
         # exchange the cards
         for index in indexes_the_user_wants_to_replace:
             player.cards[int(index)] = get_card_from_top_of_deck(deck)
