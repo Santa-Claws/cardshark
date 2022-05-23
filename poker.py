@@ -1,3 +1,4 @@
+from copy import copy
 from typing import List, Tuple
 
 from deck import Deck
@@ -6,14 +7,20 @@ from card import Card
 # an input to get num of player
 from player import Player
 
+ZERO_SCORE = tuple([0 for _ in range(5)])
 
-def is_royal_flush(cards: List[Card]) -> int:
+
+def sorted_by_value(cards):
+    return tuple(sorted([card.value for card in cards], reverse=True))
+
+
+def is_royal_flush(cards: List[Card]) -> Tuple:
     card_names = [card.name for card in cards]
     for i in ['A', 'K', 'Q', 'J', '10']:
         if i not in card_names:
-            return 0
+            return ZERO_SCORE
     if not is_flush(cards):
-        return 0
+        return ZERO_SCORE
     else:
         suit_scores = {
             Deck.suits['spades']: 4,
@@ -21,26 +28,25 @@ def is_royal_flush(cards: List[Card]) -> int:
             Deck.suits['diamonds']: 2,
             Deck.suits['clubs']: 1
         }
-        return suit_scores[cards[0].suit]
+        return tuple([suit_scores[cards[0].suit]] + [0 for _ in range(4)])
 
 
-def is_flush(cards: List[Card]) -> int:
+def is_flush(cards: List[Card]) -> Tuple:
     for suit in Deck.suits:
         if all([card.suit == suit for card in cards]):
-            high_card = max(cards, key=lambda card: card.value)
-            return high_card.value
-    return 0
+            return sorted_by_value(cards)
+    return ZERO_SCORE
 
 
-def is_strait_flush(cards: List[Card]) -> int:
+def is_strait_flush(cards: List[Card]) -> Tuple:
     x = is_flush(cards)
     y = is_strait(cards)
-    if x and y:
+    if x[0] and y[0]:
         return x
-    return 0
+    return ZERO_SCORE
 
 
-def is_n_of_kind(cards: List[Card], n) -> Tuple[int, str]:
+def is_n_of_kind(cards: List[Card], n) -> Tuple[Tuple, str]:
     card_names = [card.name for card in cards]
     card_valus = {card.name: card.value for card in cards}
     for name in [name[0] for name in Deck.names]:
@@ -50,44 +56,47 @@ def is_n_of_kind(cards: List[Card], n) -> Tuple[int, str]:
                 card_backups.append(name)
                 card_names.remove(name)
             else:
+                # high_cards = copy(card_names)
                 card_names.extend(card_backups)
                 break
         if len(card_backups) == n:
-            return card_valus[name], name
-    return 0, ""
+            return tuple([card_valus[z] for z in card_backups] + sorted([card_valus[z] for z in card_names], reverse=True)), name
+    return ZERO_SCORE, ""
 
 
-def is_two_pair(cards: List[Card]) -> int:
+def is_two_pair(cards: List[Card]) -> Tuple:
     (score, da_card_name) = is_n_of_kind(cards, 2)
-    if score != 0:
+    if score[0] != 0:
         remaining_cards = [card for card in cards if card.name != da_card_name]
-        (score_2, _) = is_n_of_kind(remaining_cards, 2)
-        if score_2 != 0:
-            return score_2 if score_2 > score else score
+        (score_2, da_other_card_name) = is_n_of_kind(remaining_cards, 2)
+        if score_2[0] != 0:
+            ordered_scores = score_2[0:2] + score[0:2] if score_2[0] > score[0] else score[0:2] + score_2[0:2]
+            remaining_cards = [card for card in cards if card.name != da_other_card_name]
+            return ordered_scores + tuple(remaining_cards)
         else:
-            return 0
+            return ZERO_SCORE
     else:
-        return 0
+        return ZERO_SCORE
 
 
-def is_strait(cards: List[Card]) -> int:
+def is_strait(cards: List[Card]) -> Tuple:
     card_values = [card.value for card in cards]
     sorted_card_names = sorted(card_values)
     # NOTE: only works with 5 cards
     if sorted_card_names[0] - sorted_card_names[4] != 4:
-        return 0
-    high_card = max(cards, key=lambda card: card.value)
-    return high_card.value
+        return ZERO_SCORE
+    return sorted_by_value(cards)
 
-def high_card(cards: List[Card]) -> int:
-    return max(cards, key=lambda card: card.value).value
+
+def high_card(cards: List[Card]) -> Tuple:
+    return sorted_by_value(cards)
 
 
 def find_winner(players: List[Player]) -> Player:
     # players[0].cards
 
     # returns (combo_type, score) tuple
-    def find_combo_type(cards: List[Card]) -> Tuple[int, int]:
+    def find_combo_type(cards: List[Card]) -> Tuple:
         import functools
         list_of_functions = [
             is_royal_flush,
@@ -101,11 +110,11 @@ def find_winner(players: List[Player]) -> Player:
             high_card
         ]
         for count, function in enumerate(list_of_functions):
-            x = function(cards=cards)
-            score = x[0] if isinstance(x, tuple) else x
-            if score:
+            score = function(cards=cards)
+            score = score[0] if isinstance(score[0], Tuple) else score
+            if score[0]:
                 # the combo type is descending values
-                return len(list_of_functions) - count, score
+                return (len(list_of_functions) - count,) + score
 
     player_combos = []
     for player in players:
