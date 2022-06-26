@@ -60,7 +60,8 @@ def is_n_of_kind(cards: List[Card], n) -> Tuple[Tuple, str]:
                 card_names.extend(card_backups)
                 break
         if len(card_backups) == n:
-            return tuple([card_valus[z] for z in card_backups] + sorted([card_valus[z] for z in card_names], reverse=True)), name
+            return tuple(
+                [card_valus[z] for z in card_backups] + sorted([card_valus[z] for z in card_names], reverse=True)), name
     return ZERO_SCORE, ""
 
 
@@ -106,6 +107,7 @@ def find_winner(players: List[Player]) -> Player:
         (functools.partial(is_n_of_kind, n=2), "pair"),
         (high_card, "high card")
     ]
+
     # returns (combo_type, scores) tuple
     def find_combo_type(cards: List[Card]) -> Tuple:
         for count, function in enumerate([f[0] for f in list_of_functions]):
@@ -140,6 +142,74 @@ def get_card_from_top_of_deck(deck):
     return deck.cards.pop(0)
 
 
+def beting(players: List):
+
+    def betting_choice(player, ignored):
+        amount = input(f'how much u want to bet\n(in dollars or quarts of blood)\n\nthe current amount in the pool is {pool}')
+        player.cash = player.cash - int(amount)
+        return int(amount)
+
+    def call(player, call_amount):
+        print(f'the current call amount is {call_amount}')
+        player.cash = player.cash - call_amount
+        return call_amount
+
+    def raiise(player, call_amount):
+        raise_amount = input(f'how much u want ot raise by\n\nthe current call amount {call_amount})? ')
+        bet_amount = call_amount + int(raise_amount)
+        player.cash = player.cash - bet_amount
+        return bet_amount
+
+    def paass(player, ignored):
+        print('u passed')
+        return 0
+
+    def fold(player, ignored):
+        print('coward evolved into...\n ULTRA MEGA EX coward')
+        return -1
+
+
+    big_dict = {'bet': betting_choice, 'call': call, 'raise': raiise, 'pass': paass, 'fold': fold}
+
+    pool = 0
+    high_amount = 0
+    done = False
+    player_bets = {player: 0 for player in players}
+
+    while not done:
+        next_player_choices = ['bet', 'pass', 'fold']
+        for player in players:
+            choice = ''
+            print(f"High amount: {high_amount}, player bet amount: {player_bets[player]}")
+            if player_bets[player] < high_amount:
+                if "call" not in next_player_choices:
+                    next_player_choices.append("call")
+            while choice not in next_player_choices:
+                choice = input(f'[{player.name}] what do u want to do (choices: {[c for c in next_player_choices]})(current bet: {high_amount})? ')
+
+            func = big_dict[choice]
+            bet_amount = func(player, high_amount - player_bets[player])
+            if bet_amount > high_amount:
+                high_amount = bet_amount
+            if bet_amount < 0:
+                # folding
+                players.remove(player)
+            else:  # zero or positive bet
+                if bet_amount > 0:
+                    player_bets[player] += bet_amount
+                    next_player_choices = ['call', 'raise', 'fold']
+                else:  # pass
+                    next_player_choices = ['bet', 'pass', 'fold']
+
+                pool = pool + bet_amount
+
+            if all(player_bets[player] == high_amount for player in players):
+                print(f"everyone has bet the high amount of {high_amount}")
+                return pool
+
+    return pool
+
+
 def five_draw_round(player_names: List[str]):
     deck = Deck()
     # dealing the cards
@@ -152,6 +222,7 @@ def five_draw_round(player_names: List[str]):
     for player in players:
         print(player.name)
         print(player.cards)
+    pool = beting(players)
 
     for player in players:
         # ask how many cards players want to exchange for every player 1 by 1
@@ -161,10 +232,12 @@ def five_draw_round(player_names: List[str]):
         for index in indexes_the_user_wants_to_replace:
             player.cards[int(index)] = get_card_from_top_of_deck(deck)
         print(player.name + " -- " + str(player.cards))
+    pool = pool + beting(players)
 
     # whoever got best cards wins
     winner = find_winner(players)
-    print(f"Winner: {winner}")
+    print(f"Winner: {winner}, pool: {pool}")
+    winner.cash += pool
 
 
 whatever_you_want = ['twistan', 'troy', 'daddie', 'mummie']
