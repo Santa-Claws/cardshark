@@ -1,6 +1,5 @@
 import random
 from typing import List
-
 from card import Card
 
 
@@ -28,3 +27,8 @@ class Deck:
             for i in range(num_players):
                 player_hands[i].append(self.cards.pop(0))
         return player_hands
+
+    @staticmethod
+    def show_deck(deck):
+        print(deck)
+
