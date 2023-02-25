@@ -1,5 +1,6 @@
 import json
 import selectors
+import traceback
 from time import sleep
 from typing import List, Tuple
 import card
@@ -128,16 +129,25 @@ def play_card(cards_played: List[Card], player: Player, lead_card, hart_staus, f
         else:
             print("Card not allowed")
 
+
 def play_card_remote(sel, players, cards_played: List[Card], player: Player, lead_card, hart_staus, forst_hond):
-    game_state = json.dumps({
+    game_state = {
         "lead_card": lead_card,
         "hart_staus": hart_staus,
         "forst_hond": forst_hond,
-        "whos turn": player.name
-    })
+        "whos_turn": player.name
+    }
     print(f"Sending game state information to player: {player.name}")
     for player in players:
-        player.socket.send(game_state.encode())
+        print(f"Player={player}")
+        players_game_state = json.dumps({**game_state, **{"player_name": player.name}})
+        msg = player.message._create_message(
+            content_bytes=players_game_state.encode(),
+            content_type="text/json",
+            content_encoding="utf-8"
+        )
+        print(msg)
+        player.message.sock.send(msg)
     sleep(1)
     while True:
         print(" Trick: ", [c[2] for c in cards_played])
@@ -160,14 +170,23 @@ def wait_for_card_played(sel):
         sock, addr = None, None
         events = sel.select(timeout=None)
         for key, mask in events:
-            sock = key.fileobj
-            data = key.data
-            if mask & selectors.EVENT_READ:
-                recv_data = sock.recv(1024)  # Should be ready to read
-                if recv_data:
-                    print("Received data, card played")
-                    card_played = int(recv_data.decode())
-                    return card_played
+            if key.data:
+                message = key.data
+                try:
+                    card_played = {}
+                    def read_card(data):
+                        if "card_played" in data:
+                            card_played["index"] = int(data["card_played"])
+                    message.process_events(mask, read_card)
+                    if "index" in card_played:
+                        return card_played["index"]
+                except Exception:
+                    print(
+                        f"Main: Error: Exception for {message.addr}:\n"
+                        f"{traceback.format_exc()}"
+                    )
+                    message.close()
+
 
 
 if __name__ == "__main__":
