@@ -7,7 +7,10 @@ import card
 from card import Card
 from deck import Deck
 from player import Player
-from poo_game import GameState
+
+
+def get_played_index(played, index):
+    return next(i for i, p in enumerate(played) if p[0] == index)
 
 
 def game_flow(players):
@@ -24,16 +27,18 @@ def game_flow(players):
                     if c[2].suit == Deck.suits['hearts']:
                         hart_staus = True
             forst_hond = (i == 0)
-            card_played = play_card(cards_played, players[current_player_index], lead_card, hart_staus, forst_hond)
+            current_player = players[current_player_index]
+            current_player.sort_hearts()
+            card_played = play_card(cards_played, current_player, lead_card, hart_staus, forst_hond)
             if j == 0:
                 lead_card = card_played
             cards_played.append((current_player_index, players[current_player_index], card_played))
             current_player_index = (current_player_index + 1) % len(players)
 
         current_player_index = leader(cards_played, lead_card)
-        print(" Trick: ", ''.join(['{:>3}'.format(str(c[2])) for c in cards_played]))
-        print(f"          {'   '*current_player_index}↑")
-        print("Trick winner: ", players[current_player_index])
+        print( " Trick: ", ''.join(['{:>4}'.format(str(c[2])) for c in cards_played]))
+        print(f"           {'    '*get_played_index(cards_played, current_player_index)}↑")
+        print("Trick winner: ", players[current_player_index].name)
 
 def game_flow_remote(players, sel):
     hart_staus = False
@@ -49,14 +54,16 @@ def game_flow_remote(players, sel):
                     if c[2].suit == Deck.suits['hearts']:
                         hart_staus = True
             forst_hond = (i == 0)
-            card_played = play_card_remote(sel, players, cards_played, players[current_player_index], lead_card, hart_staus, forst_hond)
+            current_player = players[current_player_index]
+            current_player.sort_hearts()
+            card_played = play_card_remote(sel, players, cards_played, current_player, lead_card, hart_staus, forst_hond)
             if j == 0:
                 lead_card = card_played
             cards_played.append((current_player_index, players[current_player_index], card_played))
             current_player_index = (current_player_index + 1) % len(players)
 
         current_player_index = leader(cards_played, lead_card)
-        print("Trick winner: ", players[current_player_index])
+        print("Trick winner: ", players[current_player_index]['name'])
 
 def find_three_clubs(players):
     playerindex = 0
@@ -115,9 +122,9 @@ def ai(lead_card: Card, hond: List[Card], hart_staus: bool, forst_hond: bool):
     raise RuntimeError('no valid card!!! ')
 
 
-def play_card(cards_played: List[Card], player: Player, lead_card, hart_staus, forst_hond):
+def play_card(cards_played: List[Tuple[int, Player, Card]], player: Player, lead_card, hart_staus, forst_hond):
     while True:
-        print(" Trick: ", [c[2] for c in cards_played])
+        print(" Trick: ", ''.join(['{:>4}'.format(str(c[2])) for c in cards_played]))
         print(f'\n\n{player.name}\n')
         print(''.join(["{:>3}{}".format(c.name, c.suit) for c in player.cards]))
         print(''.join(["{0:4}".format(idx) for idx in range(len(player.cards))]))
@@ -133,7 +140,7 @@ def play_card(cards_played: List[Card], player: Player, lead_card, hart_staus, f
             print("Card not allowed")
 
 
-def play_card_remote(sel, players, cards_played: List[Card], player: Player, lead_card, hart_staus, forst_hond):
+def play_card_remote(sel, players, cards_played: List[Tuple[int, Player, Card]], player: Player, lead_card, hart_staus, forst_hond):
     game_state = GameState(
         lead_card=lead_card,
         hart_staus=hart_staus,
