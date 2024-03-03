@@ -12,6 +12,15 @@ class Player:
         self.cash = cash
         self.ai = ai
 
+    def sort_hearts(self):
+        SUIT_ORDER = {
+            '♣': 0,
+            '♦': 1,
+            '♠': 2,
+            '♥': 3
+        }
+        self.cards.sort(key=lambda c: (SUIT_ORDER[c.suit], c.value))
+
     def __str__(self):
         return json.dumps({
             'name': self.name,
