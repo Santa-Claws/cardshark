@@ -7,6 +7,7 @@ import card
 from card import Card
 from deck import Deck
 from player import Player
+from poo_game import GameState
 
 
 def game_flow(players):
@@ -30,6 +31,8 @@ def game_flow(players):
             current_player_index = (current_player_index + 1) % len(players)
 
         current_player_index = leader(cards_played, lead_card)
+        print(" Trick: ", ''.join(['{:>3}'.format(str(c[2])) for c in cards_played]))
+        print(f"          {'   '*current_player_index}↑")
         print("Trick winner: ", players[current_player_index])
 
 def game_flow_remote(players, sel):
@@ -131,12 +134,12 @@ def play_card(cards_played: List[Card], player: Player, lead_card, hart_staus, f
 
 
 def play_card_remote(sel, players, cards_played: List[Card], player: Player, lead_card, hart_staus, forst_hond):
-    game_state = {
-        "lead_card": lead_card,
-        "hart_staus": hart_staus,
-        "forst_hond": forst_hond,
-        "whos_turn": player.name
-    }
+    game_state = GameState(
+        lead_card=lead_card,
+        hart_staus=hart_staus,
+        forst_hond=forst_hond,
+        whos_turn=player.name
+    )
     print(f"Sending game state information to player: {player.name}")
     for player in players:
         print(f"Player={player}")
@@ -178,6 +181,7 @@ def wait_for_card_played(sel):
                         if "card_played" in data:
                             card_played["index"] = int(data["card_played"])
                     message.process_events(mask, read_card)
+                    ### Check here ^ for played card, not seeing it yet
                     if "index" in card_played:
                         return card_played["index"]
                 except Exception:
@@ -190,7 +194,7 @@ def wait_for_card_played(sel):
 
 
 if __name__ == "__main__":
-    player_names = ['twistan', 'troy', 'daddie', 'mummie']
+    player_names = ['bob', 'alice', 'leeroy', 'cletis']
     deck = Deck()
     hands = deck.deal(len(player_names), 13)
     players = [
