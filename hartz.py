@@ -7,6 +7,7 @@ import card
 from card import Card
 from deck import Deck
 from player import Player
+from random import randint
 
 
 def get_played_index(played, index):
@@ -39,6 +40,27 @@ def game_flow(players):
         print( " Trick: ", ''.join(['{:>4}'.format(str(c[2])) for c in cards_played]))
         print(f"           {'    '*get_played_index(cards_played, current_player_index)}↑")
         print("Trick winner: ", players[current_player_index].name)
+
+        players[current_player_index].trick_cards.extend(cards_played)
+        print(players[current_player_index].trick_cards)
+    # round is over
+    for player in players:
+        for _, _, card in player.trick_cards:
+            if card.suit == '♥':
+                player.score += 1
+            elif card.suit == '♠' and card.value == 13:
+                player.score += 13
+
+
+    for player in players:
+        if player.score == 26:
+            for playerr in players:
+                if not playerr.name == player.name:
+                    playerr.score += 26
+            player.score -= 26
+            break
+    for player in players:
+        print(f"Player: {player.name} Score: {player.score}")
 
 def game_flow_remote(players, sel):
     hart_staus = False
@@ -116,15 +138,23 @@ def if_card_allowed(card: Card, lead_card: Card, hond: List[Card], hart_staus: b
 
 
 def ai(lead_card: Card, hond: List[Card], hart_staus: bool, forst_hond: bool):
-    for c in hond:
-        if if_card_allowed(c, lead_card, hond, hart_staus, forst_hond):
-            return c
-    raise RuntimeError('no valid card!!! ')
+    while True:
+        card = hond[randint(0, (len(hond) - 1))]
+        if if_card_allowed(card, lead_card, hond, hart_staus, forst_hond):
+            return card
+
+
+    #for c in hond:
+        #if if_card_allowed(c, lead_card, hond, hart_staus, forst_hond):
+            #return c
+    #raise RuntimeError('no valid card!!! ')
 
 
 def play_card(cards_played: List[Tuple[int, Player, Card]], player: Player, lead_card, hart_staus, forst_hond):
     while True:
-        print(" Trick: ", ''.join(['{:>4}'.format(str(c[2])) for c in cards_played]))
+        print("        -------------------------")
+        print(" Trick: |", ''.join(['{:>4}'.format(str(c[2])) for c in cards_played]), " |")
+        print("        -------------------------")
         print(f'\n\n{player.name}\n')
         print(''.join(["{:>3}{}".format(c.name, c.suit) for c in player.cards]))
         print(''.join(["{0:4}".format(idx) for idx in range(len(player.cards))]))
@@ -202,13 +232,16 @@ def wait_for_card_played(sel):
 
 if __name__ == "__main__":
     player_names = ['bob', 'alice', 'leeroy', 'cletis']
-    deck = Deck()
-    hands = deck.deal(len(player_names), 13)
-    players = [
-        Player(name, hand)
-        for name, hand in zip(player_names, hands)
-    ]
-    game_flow(players)
+    while True:
+        deck = Deck()
+        hands = deck.deal(len(player_names), 13)
+        players = [
+            Player(name, hand, ai=True)
+            for name, hand in zip(player_names, hands)
+        ]
+        game_flow(players)
+        if len(list(filter(lambda p: p.score == 26, players))) > 0:
+            break
 
 # second player picks what clubs they want to play
 # if no clubs the have player pick card of their choice
@@ -221,3 +254,37 @@ if __name__ == "__main__":
 # each heart in pile adds 1 to player points
 # player with queen o' spades gains thirteen points
 # player with least points wins
+
+#weight point system for rules
+# if have queen of spades,last in trick,leader, or first round then diffrent set of rules
+#rules
+#play highest card below top card
+#want to get rid of sauits
+#if dont have any of lead card suit then play highest card prioritizing hearts
+#if all cards higheeer than lead card play lowest card
+# if nothing to lose then play higherst card
+# if lead then play lowest card and target getting rid of suits
+# if someone trying to shoot moon then wait to take one point
+
+#queen rules
+# play cards higher than queen
+
+#leader rules
+#if queen hasnt been played and have only spades below queen then play spades
+#play lowest card targwetting getting riud of suits also if all cards for that suit are gone then dont play it
+#if have queen thewn dont play queen
+#dont play high hearts
+
+
+#last rules
+#if nothing to lose then play highest card other than queen
+#target getting ridf of suits
+#
+
+#card passing rules
+#get rid of highest hearts
+#get rid of highest cards
+#target getting rid of a suit
+#almost never get rid of spades
+#if only have queen of spades or less than 2 other spades the pass it
+# if have 2 or fewer of same suit the getr rid

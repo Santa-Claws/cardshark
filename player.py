@@ -11,6 +11,8 @@ class Player:
         self.message = message
         self.cash = cash
         self.ai = ai
+        self.trick_cards = []
+        self.score = 0
 
     def sort_hearts(self):
         SUIT_ORDER = {
