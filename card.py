@@ -1,7 +1,9 @@
 import json
+from dataclasses import dataclass, field
+from dataclass_wizard import JSONWizard
 
-
-class Card:
+@dataclass
+class Card(JSONWizard):
     def __init__(self, name, suit, value, color='black'):
         self.name = name
         self.suit = suit

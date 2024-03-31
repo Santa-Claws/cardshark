@@ -23,11 +23,11 @@ class Player:
         }
         self.cards.sort(key=lambda c: (SUIT_ORDER[c.suit], c.value))
 
-    def __str__(self):
-        return json.dumps({
-            'name': self.name,
-            'message': str(self.message)
-        })
+    #def __str__(self):
+    #    return json.dumps({
+    #        'name': self.name,
+    #        'message': str(self.message)
+    #    })
 
-    def __repr__(self):
-        return self.__str__()
+    #def __repr__(self):
+    #    return self.__str__()

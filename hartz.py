@@ -6,6 +6,7 @@ from typing import List, Tuple
 import card
 from card import Card
 from deck import Deck
+from game_state import GameState, HeartsRoundState
 from player import Player
 from random import randint
 
@@ -15,10 +16,19 @@ def get_played_index(played, index):
 
 
 def game_flow(players):
+    game_state = GameState(
+        phase="",
+        forst_hond="",
+        hart_staus="",
+        lead_card="",
+        whos_turn=""
+    )
     hart_staus = False
+    queen_played = False
     current_player_index = find_three_clubs(players)
 
     for i in range(0, 13):
+        round_state = HeartsRoundState(i)
         lead_card = None
 
         cards_played = []
@@ -27,10 +37,21 @@ def game_flow(players):
                 for c in cards_played:
                     if c[2].suit == Deck.suits['hearts']:
                         hart_staus = True
+
+            round_state.hearts_broken = hart_staus
             forst_hond = (i == 0)
             current_player = players[current_player_index]
             current_player.sort_hearts()
             card_played = play_card(cards_played, current_player, lead_card, hart_staus, forst_hond)
+            if card_played.value == 13 and card_played.suit == "♠":
+                queen_played = True
+            round_state.cards_in_trick = cards_played
+            round_state.card_played = card_played
+            round_state.lead_card = lead_card
+            round_state.queen_played = queen_played
+            if current_player.name == 'bob':
+                round_state.player_order = len(cards_played) + 1
+                round_state.record()
             if j == 0:
                 lead_card = card_played
             cards_played.append((current_player_index, players[current_player_index], card_played))
@@ -44,6 +65,7 @@ def game_flow(players):
         players[current_player_index].trick_cards.extend(cards_played)
         print(players[current_player_index].trick_cards)
     # round is over
+
     for player in players:
         for _, _, card in player.trick_cards:
             if card.suit == '♥':
